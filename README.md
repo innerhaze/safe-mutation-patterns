@@ -40,7 +40,12 @@ The obvious response is a single global timeout at the database side. That gets 
 The pattern that worked:
 
 - The connection factory requires a `timeout_class` argument at call time.
-- The classes are named by what the query is doing, not by magnitude. Four classes cover the real workload: `lookup`, `spatial`, `aggregate`, `heavy`. Each has a documented default.
+- The classes are named by what the query is doing, not by magnitude. Four classes cover the real workload, each with a documented default and a one-line note on what each one is for:
+
+    - `lookup` — 15s. Indexed by place-id or chain-id.
+    - `spatial` — 60s. ST_DWithin, bounding-box intersections.
+    - `aggregate` — 120s. COUNT, GROUP BY on large tables.
+    - `heavy` — 300s. ILIKE on name, JSONB field filters.
 - `SET statement_timeout = ...` runs before the first query on each connection, derived from the class.
 - The factory refuses to build a connection with no class, or with `timeout_class=heavy` from a code path that is not whitelisted. This forces the author of a new call site to think about the class rather than reaching for the biggest one.
 - A unit test asserts that the connection object cannot be built without a class. A smoke test runs an intentionally-slow query against a non-production endpoint and verifies that it is cancelled at the expected limit.
